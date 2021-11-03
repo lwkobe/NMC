@@ -302,50 +302,51 @@ elif is_testing:
         network_float.eval()
 
     counter = 0
-    for i, data in enumerate(dataloader_test, 0):
+    if __name__ == '__main__':
+        for i, data in enumerate(dataloader_test, 0):
 
-        # #if you run out of GPU memory when testing 128^3 inputs, uncomment the following lines
-        # gt_input = None
-        # pred_output_bool = None
-        # pred_output_float = None
-        # torch.cuda.empty_cache()
+            # #if you run out of GPU memory when testing 128^3 inputs, uncomment the following lines
+            # gt_input = None
+            # pred_output_bool = None
+            # pred_output_float = None
+            # torch.cuda.empty_cache()
 
-        gt_input_, gt_output_bool_, gt_output_bool_mask_, gt_output_float_, gt_output_float_mask_ = data
-        gt_input = gt_input_.to(device)
+            gt_input_, gt_output_bool_, gt_output_bool_mask_, gt_output_float_, gt_output_float_mask_ = data
+            gt_input = gt_input_.to(device)
 
-        with torch.no_grad():
-            if net_joint:
-                pred_output_bool, pred_output_float = network_joint(gt_input)
-            if net_bool:
-                pred_output_bool = network_bool(gt_input)
-            if net_float:
-                pred_output_float = network_float(gt_input)
+            with torch.no_grad():
+                if net_joint:
+                    pred_output_bool, pred_output_float = network_joint(gt_input)
+                if net_bool:
+                    pred_output_bool = network_bool(gt_input)
+                if net_float:
+                    pred_output_float = network_float(gt_input)
 
-        batch_size = gt_input_.size()[0]
-        for j in range(batch_size):
-            print(counter)
-            receptive_padding=3
-            if dataset_bool:
-                pred_output_bool_numpy = np.transpose(pred_output_bool[j].detach().cpu().numpy(), [1,2,3,0])
-                pred_output_bool_numpy = (pred_output_bool_numpy>0.5).astype(np.int32)
-                gt_input_numpy = gt_input_[j,0,receptive_padding:-receptive_padding,receptive_padding:-receptive_padding,receptive_padding:-receptive_padding].detach().cpu().numpy()
-                if FLAGS.input_type == "sdf":
-                    pred_output_bool_numpy[:,:,:,0] = (gt_input_numpy<0)
-                elif FLAGS.input_type == "voxel":
-                    gt_output_bool_mask_numpy = gt_output_bool_mask_[j].detach().cpu().numpy()
-                    pred_output_bool_numpy[:,:,:,0] = pred_output_bool_numpy[:,:,:,0]*gt_output_bool_mask_numpy[0] + gt_input_numpy*(1-gt_output_bool_mask_numpy[0])
-            else:
-                pred_output_bool_numpy = np.transpose(gt_output_bool_[j].detach().cpu().numpy(), [1,2,3,0])
-                pred_output_bool_numpy = (pred_output_bool_numpy>0.5).astype(np.int32)
-            if dataset_float:
-                pred_output_float_numpy = np.transpose(pred_output_float[j].detach().cpu().numpy(), [1,2,3,0])
-            else:
-                pred_output_float_numpy = np.transpose(gt_output_float_[j].detach().cpu().numpy(), [1,2,3,0])
-            pred_output_float_numpy = np.clip(pred_output_float_numpy,0,1)
-            #vertices, triangles = utils.marching_cubes_nmc_test(None, pred_output_bool_numpy, pred_output_float_numpy)
-            vertices, triangles = cutils.marching_cubes_nmc(np.ascontiguousarray(pred_output_bool_numpy, np.int32), np.ascontiguousarray(pred_output_float_numpy, np.float32))
-            utils.write_obj_triangle(FLAGS.sample_dir+"/test_"+str(counter)+".obj", vertices, triangles)
-            counter += 1
+            batch_size = gt_input_.size()[0]
+            for j in range(batch_size):
+                print(counter)
+                receptive_padding=3
+                if dataset_bool:
+                    pred_output_bool_numpy = np.transpose(pred_output_bool[j].detach().cpu().numpy(), [1,2,3,0])
+                    pred_output_bool_numpy = (pred_output_bool_numpy>0.5).astype(np.int32)
+                    gt_input_numpy = gt_input_[j,0,receptive_padding:-receptive_padding,receptive_padding:-receptive_padding,receptive_padding:-receptive_padding].detach().cpu().numpy()
+                    if FLAGS.input_type == "sdf":
+                        pred_output_bool_numpy[:,:,:,0] = (gt_input_numpy<0)
+                    elif FLAGS.input_type == "voxel":
+                        gt_output_bool_mask_numpy = gt_output_bool_mask_[j].detach().cpu().numpy()
+                        pred_output_bool_numpy[:,:,:,0] = pred_output_bool_numpy[:,:,:,0]*gt_output_bool_mask_numpy[0] + gt_input_numpy*(1-gt_output_bool_mask_numpy[0])
+                else:
+                    pred_output_bool_numpy = np.transpose(gt_output_bool_[j].detach().cpu().numpy(), [1,2,3,0])
+                    pred_output_bool_numpy = (pred_output_bool_numpy>0.5).astype(np.int32)
+                if dataset_float:
+                    pred_output_float_numpy = np.transpose(pred_output_float[j].detach().cpu().numpy(), [1,2,3,0])
+                else:
+                    pred_output_float_numpy = np.transpose(gt_output_float_[j].detach().cpu().numpy(), [1,2,3,0])
+                pred_output_float_numpy = np.clip(pred_output_float_numpy,0,1)
+                #vertices, triangles = utils.marching_cubes_nmc_test(None, pred_output_bool_numpy, pred_output_float_numpy)
+                vertices, triangles = cutils.marching_cubes_nmc(np.ascontiguousarray(pred_output_bool_numpy, np.int32), np.ascontiguousarray(pred_output_float_numpy, np.float32))
+                utils.write_obj_triangle(FLAGS.sample_dir+"/test_"+str(counter)+".obj", vertices, triangles)
+                counter += 1
         #if counter>=32: break
 
 
